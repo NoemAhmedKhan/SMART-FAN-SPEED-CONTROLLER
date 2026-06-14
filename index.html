@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Fan Speed Controller | Fuzzy Logic Dashboard</title>
+  <meta name="description" content="An interactive fuzzy logic system that calculates fan speed from room temperature, with live membership functions, rule evaluation, and defuzzification visualization." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand__icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 12C12 9.79 13.79 8 16 8C18.21 8 20 9.79 20 12C20 13.5 19 14.5 17.5 14.8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 12C12 14.21 10.21 16 8 16C5.79 16 4 14.21 4 12C4 10.5 5 9.5 6.5 9.2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 12C9.79 12 8 10.21 8 8C8 5.79 9.79 4 12 4C13.5 4 14.5 5 14.8 6.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="1.6" fill="#fff"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand__title">Smart Fan Speed Controller</div>
+          <div class="brand__subtitle">Fuzzy Logic Inference Dashboard</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge--dot badge--green">Engine Active</span>
+        <span class="badge">Mamdani • Centroid</span>
+        <span class="badge">0–50°C Range</span>
+      </div>
+    </header>
+
+    <!-- ===================== MAIN GRID ===================== -->
+    <main class="dashboard-grid">
+
+      <!-- ---------- TEMPERATURE INPUT (HERO) ---------- -->
+      <section class="card hero-card col-7">
+        <div class="hero-top">
+          <div>
+            <div class="hero-eyebrow">Room Temperature Input</div>
+            <div class="hero-temp-value" id="tempDisplay">25<span>°C</span></div>
+          </div>
+          <div class="hero-state-pill">
+            <span class="state-dot"></span>
+            <span id="dominantSetLabel">Moderate</span>
+          </div>
+        </div>
+
+        <div class="slider-block">
+          <div class="slider-labels">
+            <span>0°C — Cold</span>
+            <span>25°C — Moderate</span>
+            <span>50°C — Hot</span>
+          </div>
+          <input
+            type="range"
+            id="tempSlider"
+            class="temp-slider"
+            min="0" max="50" step="0.5" value="25"
+            aria-label="Room temperature in degrees Celsius"
+          />
+        </div>
+
+        <div class="preset-row">
+          <button class="preset-btn" data-temp="5">Freezing<small>5°C</small></button>
+          <button class="preset-btn" data-temp="18">Cool<small>18°C</small></button>
+          <button class="preset-btn" data-temp="25">Comfortable<small>25°C</small></button>
+          <button class="preset-btn" data-temp="35">Warm<small>35°C</small></button>
+          <button class="preset-btn" data-temp="46">Sweltering<small>46°C</small></button>
+        </div>
+      </section>
+
+      <!-- ---------- FAN ANIMATION ---------- -->
+      <section class="card col-5">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Real-Time Fan</div>
+            <div class="card__subtitle">Blade rotation speed mirrors output</div>
+          </div>
+          <span class="card__tag">Output</span>
+        </div>
+
+        <div class="fan-visual-wrap">
+          <div class="fan-housing">
+            <svg class="fan-blades" id="fanBlades" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <!-- 4 blades -->
+              <g fill="#2563eb">
+                <path d="M100 100 C 100 50, 70 20, 100 10 C 130 20, 100 50, 100 100 Z"/>
+                <path d="M100 100 C 150 100, 180 70, 190 100 C 180 130, 150 100, 100 100 Z"/>
+                <path d="M100 100 C 100 150, 130 180, 100 190 C 70 180, 100 150, 100 100 Z"/>
+                <path d="M100 100 C 50 100, 20 130, 10 100 C 20 70, 50 100, 100 100 Z"/>
+              </g>
+              <circle cx="100" cy="100" r="14" fill="#1d4ed8"/>
+            </svg>
+            <div class="fan-hub"></div>
+          </div>
+
+          <div class="fan-readout">
+            <div class="fan-readout__value" id="fanSpeedValue">50<span>%</span></div>
+            <div class="fan-readout__label">Fan Output Power</div>
+            <div class="speed-chip medium" id="speedChip">
+              <span class="speed-chip__dot"></span>
+              <span id="speedChipLabel">Medium Speed</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- FUZZIFICATION / MEMBERSHIP DEGREES ---------- -->
+      <section class="card col-4">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Fuzzification</div>
+            <div class="card__subtitle">Membership degree (μ) per set</div>
+          </div>
+          <span class="card__tag">Step 1</span>
+        </div>
+
+        <div class="membership-list">
+          <div class="membership-row">
+            <div class="membership-row__label">
+              <span class="swatch" style="background:var(--color-cold)"></span> Cold
+            </div>
+            <div class="membership-track">
+              <div class="membership-fill" id="muColdBar" style="background:var(--color-cold); width:0%"></div>
+            </div>
+            <div class="membership-row__value" id="muColdVal">0.00</div>
+          </div>
+
+          <div class="membership-row">
+            <div class="membership-row__label">
+              <span class="swatch" style="background:var(--color-moderate)"></span> Moderate
+            </div>
+            <div class="membership-track">
+              <div class="membership-fill" id="muModerateBar" style="background:var(--color-moderate); width:0%"></div>
+            </div>
+            <div class="membership-row__value" id="muModerateVal">0.00</div>
+          </div>
+
+          <div class="membership-row">
+            <div class="membership-row__label">
+              <span class="swatch" style="background:var(--color-hot)"></span> Hot
+            </div>
+            <div class="membership-track">
+              <div class="membership-fill" id="muHotBar" style="background:var(--color-hot); width:0%"></div>
+            </div>
+            <div class="membership-row__value" id="muHotVal">0.00</div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-mini">
+            <div class="stat-mini__value" id="statTemp">25.0°</div>
+            <div class="stat-mini__label">Input Temp</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini__value" id="statActiveSets">2</div>
+            <div class="stat-mini__label">Active Sets</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini__value" id="statCrispOut">50.0%</div>
+            <div class="stat-mini__label">Crisp Output</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- SPEED GAUGE ---------- -->
+      <section class="card col-4">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Fan Speed Gauge</div>
+            <div class="card__subtitle">Defuzzified crisp output value</div>
+          </div>
+          <span class="card__tag">Step 4</span>
+        </div>
+        <div class="gauge-wrap">
+          <div class="chart-container" style="height:220px">
+            <canvas id="gaugeChart"></canvas>
+          </div>
+          <div class="gauge-center-label">
+            <div class="value" id="gaugeValue">50.0</div>
+            <div class="unit">% Speed</div>
+          </div>
+        </div>
+        <div class="chart-legend-row" style="justify-content:center">
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--color-low)"></span>Low</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--color-medium)"></span>Medium</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--color-high)"></span>High</span>
+        </div>
+      </section>
+
+      <!-- ---------- RULE EVALUATION ---------- -->
+      <section class="card col-4">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Rule Evaluation</div>
+            <div class="card__subtitle">Live firing strength per rule</div>
+          </div>
+          <span class="card__tag">Step 2</span>
+        </div>
+
+        <div class="rule-list" id="ruleList">
+          <!-- Rule items injected by JS -->
+        </div>
+      </section>
+
+      <!-- ---------- MEMBERSHIP FUNCTION GRAPH (INPUT) ---------- -->
+      <section class="card col-6">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Input Membership Functions</div>
+            <div class="card__subtitle">Temperature (°C) vs. Membership Degree (μ)</div>
+          </div>
+          <span class="card__tag">Universe: 0–50°C</span>
+        </div>
+        <div class="chart-container tall">
+          <canvas id="inputMfChart"></canvas>
+        </div>
+      </section>
+
+      <!-- ---------- MEMBERSHIP FUNCTION GRAPH (OUTPUT / AGGREGATION) ---------- -->
+      <section class="card col-6">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Output &amp; Defuzzification</div>
+            <div class="card__subtitle">Aggregated fuzzy output &amp; centroid</div>
+          </div>
+          <span class="card__tag">Universe: 0–100%</span>
+        </div>
+        <div class="chart-container tall">
+          <canvas id="outputMfChart"></canvas>
+        </div>
+      </section>
+
+      <!-- ---------- INPUT VS OUTPUT SURFACE ---------- -->
+      <section class="card col-12">
+        <div class="card__header">
+          <div>
+            <div class="card__title"><span class="icon-dot"></span>Input vs. Output Response Curve</div>
+            <div class="card__subtitle">Fan speed (%) across the full temperature range — current point highlighted</div>
+          </div>
+          <span class="card__tag">Step 5 • Full Sweep</span>
+        </div>
+        <div class="chart-container tall">
+          <canvas id="responseCurveChart"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <p>Smart Fan Speed Controller — Fuzzy Logic Demonstration • Mamdani Inference with Centroid Defuzzification</p>
+      <p>Built with Vanilla HTML, CSS &amp; JavaScript + <a href="https://www.chartjs.org/" target="_blank" rel="noopener">Chart.js</a> — No backend, runs entirely client-side.</p>
+    </footer>
+  </div>
+
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Application Scripts -->
+  <script src="assets/js/fuzzyEngine.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
